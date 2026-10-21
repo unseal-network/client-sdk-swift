@@ -51,15 +51,26 @@ public class E2EEManager: NSObject, @unchecked Sendable, ObservableObject, Logga
         options?.encryptionType ?? e2eeOptions?.encryptionType ?? .none
     }
 
+    /// Whether this participant's own media is encrypted (``EncryptionOptions/encryptLocalMedia``).
+    /// Receiving doesn't depend on it: remote tracks are decrypted by their own encryption type.
+    public var encryptsLocalMedia: Bool {
+        options?.encryptLocalMedia ?? true
+    }
+
+    /// The encryption type published for this participant's tracks.
+    var localFrameEncryptionType: EncryptionType {
+        encryptsLocalMedia ? frameEncryptionType : .none
+    }
+
     public var isDataChannelEncryptionEnabled: Bool {
-        _state.enabled && options != nil
+        _state.enabled && options != nil && encryptsLocalMedia
     }
 
     /// Whether data-track frames should be encrypted: the runtime flag plus a configured
     /// encryption type, honoring either options style (unlike the data-channel gate, which
     /// requires the newer ``EncryptionOptions``).
     var isDataTrackEncryptionEnabled: Bool {
-        _state.enabled && frameEncryptionType != .none
+        _state.enabled && localFrameEncryptionType != .none
     }
 
     public var dataChannelEncryptionType: EncryptionType {
@@ -221,6 +232,11 @@ public class E2EEManager: NSObject, @unchecked Sendable, ObservableObject, Logga
     }
 
     func addRtpSender(publication: LocalTrackPublication, participantIdentity: Participant.Identity) async {
+        guard encryptsLocalMedia else {
+            log("encryptLocalMedia is false, skipping creating frame cryptor...")
+            return
+        }
+
         guard publication.encryptionType != .none else {
             log("encryptionType is .none, skipping creating frame cryptor...", .warning)
             return
