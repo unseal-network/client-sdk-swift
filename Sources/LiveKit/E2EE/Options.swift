@@ -81,11 +81,17 @@ public final class EncryptionOptions: NSObject, Sendable {
 
     public let encryptionType: EncryptionType
 
+    /// Whether this participant's own tracks, data packets and data tracks are encrypted. `false` publishes
+    /// in the clear while still decrypting remote tracks that are published encrypted (decrypt-only).
+    public let encryptLocalMedia: Bool
+
     public init(keyProvider: BaseKeyProvider,
-                encryptionType: EncryptionType = .gcm)
+                encryptionType: EncryptionType = .gcm,
+                encryptLocalMedia: Bool = true)
     {
         self.keyProvider = keyProvider
         self.encryptionType = encryptionType
+        self.encryptLocalMedia = encryptLocalMedia
     }
 
     /// Creates `EncryptionOptions` configured with a shared-key
@@ -106,13 +112,15 @@ public final class EncryptionOptions: NSObject, Sendable {
     override public func isEqual(_ object: Any?) -> Bool {
         guard let other = object as? Self else { return false }
         return keyProvider == other.keyProvider &&
-            encryptionType == other.encryptionType
+            encryptionType == other.encryptionType &&
+            encryptLocalMedia == other.encryptLocalMedia
     }
 
     override public var hash: Int {
         var hasher = Hasher()
         hasher.combine(keyProvider)
         hasher.combine(encryptionType)
+        hasher.combine(encryptLocalMedia)
         return hasher.finalize()
     }
 }

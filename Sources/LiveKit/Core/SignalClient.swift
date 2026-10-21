@@ -530,8 +530,10 @@ private extension SignalClient {
 
 extension SignalClient {
     func resumeQueues() async {
-        await _responseQueue.resume()
+        // Requests first: resuming the responses handles a queued server offer, whose answer (not
+        // queueable) would be dropped if it were sent while the request queue is still suspended.
         await _requestQueue.resume()
+        await _responseQueue.resume()
     }
 
     /// Whether `response` passes the gate armed by `cleanUp()`; a Join/ReconnectResponse opens it.
